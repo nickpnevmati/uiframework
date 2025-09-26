@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 namespace deVoid.UIFramework
@@ -12,7 +13,7 @@ namespace deVoid.UIFramework
     {
         [Tooltip("Set this to false if you want to manually initialize this UI Frame.")]
         [SerializeField] private bool initializeOnAwake = true;
-        
+
         private PanelUILayer panelLayer;
         private WindowUILayer windowLayer;
 
@@ -22,9 +23,12 @@ namespace deVoid.UIFramework
         /// <summary>
         /// The main canvas of this UI
         /// </summary>
-        public Canvas MainCanvas {
-            get {
-                if (mainCanvas == null) {
+        public Canvas MainCanvas
+        {
+            get
+            {
+                if (mainCanvas == null)
+                {
                     mainCanvas = GetComponent<Canvas>();
                 }
 
@@ -35,13 +39,16 @@ namespace deVoid.UIFramework
         /// <summary>
         /// The Camera being used by the Main UI Canvas
         /// </summary>
-        public Camera UICamera {
+        public Camera UICamera
+        {
             get { return MainCanvas.worldCamera; }
         }
 
-        private void Awake() {
-            if (initializeOnAwake) {
-                Initialize();    
+        private void Awake()
+        {
+            if (initializeOnAwake)
+            {
+                Initialize();
             }
         }
 
@@ -50,23 +57,30 @@ namespace deVoid.UIFramework
         /// Although literally all the cases I've had to this day were covered by the "Window and Panel" approach,
         /// I made it virtual in case you ever need additional layers or other special initialization.
         /// </summary>
-        public virtual void Initialize() {
-            if (panelLayer == null) {
+        public virtual void Initialize()
+        {
+            if (panelLayer == null)
+            {
                 panelLayer = gameObject.GetComponentInChildren<PanelUILayer>(true);
-                if (panelLayer == null) {
+                if (panelLayer == null)
+                {
                     Debug.LogError("[UI Frame] UI Frame lacks Panel Layer!");
                 }
-                else {
+                else
+                {
                     panelLayer.Initialize();
                 }
             }
 
-            if (windowLayer == null) {
+            if (windowLayer == null)
+            {
                 windowLayer = gameObject.GetComponentInChildren<WindowUILayer>(true);
-                if (panelLayer == null) {
+                if (windowLayer == null)
+                {
                     Debug.LogError("[UI Frame] UI Frame lacks Window Layer!");
                 }
-                else {
+                else
+                {
                     windowLayer.Initialize();
                     windowLayer.RequestScreenBlock += OnRequestScreenBlock;
                     windowLayer.RequestScreenUnblock += OnRequestScreenUnblock;
@@ -74,13 +88,28 @@ namespace deVoid.UIFramework
             }
 
             graphicRaycaster = MainCanvas.GetComponent<GraphicRaycaster>();
+
+            // Find the Camera in child objects
+            Camera uiCamera = gameObject.GetComponentInChildren<Camera>(true);
+            Camera mainCamera = Camera.main;
+
+            // Add the child camera to the main camera's stack (for URP)
+            if (mainCamera != null && uiCamera != null)
+            {
+                var data = mainCamera.GetUniversalAdditionalCameraData();
+                if (data != null && !data.cameraStack.Contains(uiCamera))
+                {
+                    data.cameraStack.Add(uiCamera);
+                }
+            }
         }
 
         /// <summary>
         /// Shows a panel by its id, passing no Properties.
         /// </summary>
         /// <param name="screenId">Panel Id</param>
-        public void ShowPanel(string screenId) {
+        public void ShowPanel(string screenId)
+        {
             panelLayer.ShowScreenById(screenId);
         }
 
@@ -91,7 +120,8 @@ namespace deVoid.UIFramework
         /// <param name="properties">Properties.</param>
         /// <typeparam name="T">The type of properties to be passed in.</typeparam>
         /// <seealso cref="IPanelProperties"/>
-        public void ShowPanel<T>(string screenId, T properties) where T : IPanelProperties {
+        public void ShowPanel<T>(string screenId, T properties) where T : IPanelProperties
+        {
             panelLayer.ShowScreenById<T>(screenId, properties);
         }
 
@@ -99,7 +129,8 @@ namespace deVoid.UIFramework
         /// Hides the panel with the given id.
         /// </summary>
         /// <param name="screenId">Identifier.</param>
-        public void HidePanel(string screenId) {
+        public void HidePanel(string screenId)
+        {
             panelLayer.HideScreenById(screenId);
         }
 
@@ -107,7 +138,8 @@ namespace deVoid.UIFramework
         /// Opens the Window with the given Id, with no Properties.
         /// </summary>
         /// <param name="screenId">Identifier.</param>
-        public void OpenWindow(string screenId) {
+        public void OpenWindow(string screenId)
+        {
             windowLayer.ShowScreenById(screenId);
         }
 
@@ -115,16 +147,19 @@ namespace deVoid.UIFramework
         /// Closes the Window with the given Id.
         /// </summary>
         /// <param name="screenId">Identifier.</param>
-        public void CloseWindow(string screenId) {
+        public void CloseWindow(string screenId)
+        {
             windowLayer.HideScreenById(screenId);
         }
-        
+
         /// <summary>
         /// Closes the currently open window, if any is open
         /// </summary>
-        public void CloseCurrentWindow() {
-            if (windowLayer.CurrentWindow != null) {
-                CloseWindow(windowLayer.CurrentWindow.ScreenId);    
+        public void CloseCurrentWindow()
+        {
+            if (windowLayer.CurrentWindow != null)
+            {
+                CloseWindow(windowLayer.CurrentWindow.ScreenId);
             }
         }
 
@@ -135,7 +170,8 @@ namespace deVoid.UIFramework
         /// <param name="properties">Properties.</param>
         /// <typeparam name="T">The type of properties to be passed in.</typeparam>
         /// <seealso cref="IWindowProperties"/>
-        public void OpenWindow<T>(string screenId, T properties) where T : IWindowProperties {
+        public void OpenWindow<T>(string screenId, T properties) where T : IWindowProperties
+        {
             windowLayer.ShowScreenById<T>(screenId, properties);
         }
 
@@ -143,17 +179,22 @@ namespace deVoid.UIFramework
         /// Searches for the given id among the Layers, opens the Screen if it finds it
         /// </summary>
         /// <param name="screenId">The Screen id.</param>
-        public void ShowScreen(string screenId) {
+        public void ShowScreen(string screenId)
+        {
             Type type;
-            if (IsScreenRegistered(screenId, out type)) {
-                if (type == typeof(IWindowController)) {
+            if (IsScreenRegistered(screenId, out type))
+            {
+                if (type == typeof(IWindowController))
+                {
                     OpenWindow(screenId);
                 }
-                else if (type == typeof(IPanelController)) {
+                else if (type == typeof(IPanelController))
+                {
                     ShowPanel(screenId);
                 }
             }
-            else {
+            else
+            {
                 Debug.LogError(string.Format("Tried to open Screen id {0} but it's not registered as Window or Panel!",
                     screenId));
             }
@@ -166,11 +207,14 @@ namespace deVoid.UIFramework
         /// <param name="screenId">Screen identifier.</param>
         /// <param name="controller">Controller.</param>
         /// <param name="screenTransform">Screen transform. If not null, will be reparented to proper layer</param>
-        public void RegisterScreen(string screenId, IUIScreenController controller, Transform screenTransform) {
+        public void RegisterScreen(string screenId, IUIScreenController controller, Transform screenTransform)
+        {
             IWindowController window = controller as IWindowController;
-            if (window != null) {
+            if (window != null)
+            {
                 windowLayer.RegisterScreen(screenId, window);
-                if (screenTransform != null) {
+                if (screenTransform != null)
+                {
                     windowLayer.ReparentScreen(controller, screenTransform);
                 }
 
@@ -178,9 +222,11 @@ namespace deVoid.UIFramework
             }
 
             IPanelController panel = controller as IPanelController;
-            if (panel != null) {
+            if (panel != null)
+            {
                 panelLayer.RegisterScreen(screenId, panel);
-                if (screenTransform != null) {
+                if (screenTransform != null)
+                {
                     panelLayer.ReparentScreen(controller, screenTransform);
                 }
             }
@@ -192,7 +238,8 @@ namespace deVoid.UIFramework
         /// <param name="screenId">Screen identifier.</param>
         /// <param name="controller">Controller.</param>
         /// <typeparam name="TPanel">The Controller type.</typeparam>
-        public void RegisterPanel<TPanel>(string screenId, TPanel controller) where TPanel : IPanelController {
+        public void RegisterPanel<TPanel>(string screenId, TPanel controller) where TPanel : IPanelController
+        {
             panelLayer.RegisterScreen(screenId, controller);
         }
 
@@ -202,7 +249,8 @@ namespace deVoid.UIFramework
         /// <param name="screenId">Screen identifier.</param>
         /// <param name="controller">Controller.</param>
         /// <typeparam name="TPanel">The Controller type.</typeparam>
-        public void UnregisterPanel<TPanel>(string screenId, TPanel controller) where TPanel : IPanelController {
+        public void UnregisterPanel<TPanel>(string screenId, TPanel controller) where TPanel : IPanelController
+        {
             panelLayer.UnregisterScreen(screenId, controller);
         }
 
@@ -212,7 +260,8 @@ namespace deVoid.UIFramework
         /// <param name="screenId">Screen identifier.</param>
         /// <param name="controller">Controller.</param>
         /// <typeparam name="TWindow">The Controller type.</typeparam>
-        public void RegisterWindow<TWindow>(string screenId, TWindow controller) where TWindow : IWindowController {
+        public void RegisterWindow<TWindow>(string screenId, TWindow controller) where TWindow : IWindowController
+        {
             windowLayer.RegisterScreen(screenId, controller);
         }
 
@@ -222,7 +271,8 @@ namespace deVoid.UIFramework
         /// <param name="screenId">Screen identifier.</param>
         /// <param name="controller">Controller.</param>
         /// <typeparam name="TWindow">The Controller type.</typeparam>
-        public void UnregisterWindow<TWindow>(string screenId, TWindow controller) where TWindow : IWindowController {
+        public void UnregisterWindow<TWindow>(string screenId, TWindow controller) where TWindow : IWindowController
+        {
             windowLayer.UnregisterScreen(screenId, controller);
         }
 
@@ -230,7 +280,8 @@ namespace deVoid.UIFramework
         /// Checks if a given Panel is open.
         /// </summary>
         /// <param name="panelId">Panel identifier.</param>
-        public bool IsPanelOpen(string panelId) {
+        public bool IsPanelOpen(string panelId)
+        {
             return panelLayer.IsPanelVisible(panelId);
         }
 
@@ -238,7 +289,8 @@ namespace deVoid.UIFramework
         /// Hide all screens
         /// </summary>
         /// <param name="animate">Defines if screens should the screens animate out or not.</param>
-        public void HideAll(bool animate = true) {
+        public void HideAll(bool animate = true)
+        {
             CloseAllWindows(animate);
             HideAllPanels(animate);
         }
@@ -247,7 +299,8 @@ namespace deVoid.UIFramework
         /// Hide all screens on the Panel Layer
         /// </summary>
         /// <param name="animate">Defines if screens should the screens animate out or not.</param>
-        public void HideAllPanels(bool animate = true) {
+        public void HideAllPanels(bool animate = true)
+        {
             panelLayer.HideAll(animate);
         }
 
@@ -255,7 +308,8 @@ namespace deVoid.UIFramework
         /// Hide all screens in the Window Layer
         /// </summary>
         /// <param name="animate">Defines if screens should the screens animate out or not.</param>
-        public void CloseAllWindows(bool animate = true) {
+        public void CloseAllWindows(bool animate = true)
+        {
             windowLayer.HideAll(animate);
         }
 
@@ -263,12 +317,15 @@ namespace deVoid.UIFramework
         /// Checks if a given screen id is registered to either the Window or Panel layers
         /// </summary>
         /// <param name="screenId">The Id to check.</param>
-        public bool IsScreenRegistered(string screenId) {
-            if (windowLayer.IsScreenRegistered(screenId)) {
+        public bool IsScreenRegistered(string screenId)
+        {
+            if (windowLayer.IsScreenRegistered(screenId))
+            {
                 return true;
             }
 
-            if (panelLayer.IsScreenRegistered(screenId)) {
+            if (panelLayer.IsScreenRegistered(screenId))
+            {
                 return true;
             }
 
@@ -281,13 +338,16 @@ namespace deVoid.UIFramework
         /// </summary>
         /// <param name="screenId">The Id to check.</param>
         /// <param name="type">The type of the screen.</param>
-        public bool IsScreenRegistered(string screenId, out Type type) {
-            if (windowLayer.IsScreenRegistered(screenId)) {
+        public bool IsScreenRegistered(string screenId, out Type type)
+        {
+            if (windowLayer.IsScreenRegistered(screenId))
+            {
                 type = typeof(IWindowController);
                 return true;
             }
 
-            if (panelLayer.IsScreenRegistered(screenId)) {
+            if (panelLayer.IsScreenRegistered(screenId))
+            {
                 type = typeof(IPanelController);
                 return true;
             }
@@ -296,14 +356,18 @@ namespace deVoid.UIFramework
             return false;
         }
 
-        private void OnRequestScreenBlock() {
-            if (graphicRaycaster != null) {
+        private void OnRequestScreenBlock()
+        {
+            if (graphicRaycaster != null)
+            {
                 graphicRaycaster.enabled = false;
             }
         }
 
-        private void OnRequestScreenUnblock() {
-            if (graphicRaycaster != null) {
+        private void OnRequestScreenUnblock()
+        {
+            if (graphicRaycaster != null)
+            {
                 graphicRaycaster.enabled = true;
             }
         }
